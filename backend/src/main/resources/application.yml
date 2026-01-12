@@ -22,12 +22,12 @@ spring:
 langchain4j:
   open-ai:
     chat-model:
-      api-key: ${OPENAI_API_KEY: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}
+      api-key: ${OPENAI_API_KEY:}
       base-url: ${OPENAI_BASE_URL:https://integrate.api.nvidia.com/v1}
       model-name: ${OPENAI_MODEL:minimaxai/minimax-m2}
       timeout: PT60S
     embedding-model:
-      api-key: ${OPENAI_API_KEY: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}
+      api-key: ${OPENAI_API_KEY:}
       base-url: ${OPENAI_BASE_URL:https://integrate.api.nvidia.com/v1}
       model-name: nvidia/nv-embed-v1
   pgvector:
