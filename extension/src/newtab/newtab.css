@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+:root {
+    --cyber-bg: #050a12;
+    --cyber-panel: rgba(10, 25, 47, 0.85);
+    --cyber-border: rgba(0, 255, 255, 0.25);
+    --cyber-cyan: #00ffff;
+    --cyber-green: #00ff88;
+    --cyber-purple: #bf5fff;
+    --cyber-pink: #ff0080;
+    --cyber-yellow: #ffcc00;
+    --text-primary: #e0f0ff;
+    --text-secondary: #6a8a9a;
+}
+
+body {
+    background: var(--cyber-bg);
+    margin: 0;
+    overflow-x: hidden;
+    width: 100vw !important;
+    min-height: 100vh;
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--cyber-cyan);
+    border-radius: 3px;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+button {
+    font-family: inherit;
+}
+
+/* Global Utility Classes */
+.btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    background: rgba(0, 255, 255, 0.1);
+    color: var(--cyber-cyan);
+    border: 1px solid var(--cyber-border);
+}
+
+.btn:hover {
+    background: rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+}

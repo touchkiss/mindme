@@ -1,0 +1,7 @@
+com/touchkiss/mindme/repository/ActivityRecordRepository.class
+com/touchkiss/mindme/domain/ActivityRecord.class
+com/touchkiss/mindme/controller/SearchController.class
+com/touchkiss/mindme/repository/KnowledgeEntryRepository.class
+com/touchkiss/mindme/controller/KnowledgeGraphController.class
+com/touchkiss/mindme/service/VectorSearchService.class
+com/touchkiss/mindme/domain/KnowledgeEntry.class
