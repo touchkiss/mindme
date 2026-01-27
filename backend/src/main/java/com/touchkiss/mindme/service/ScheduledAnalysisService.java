@@ -116,13 +116,29 @@ public class ScheduledAnalysisService {
 
             if (response.contains("---NO_KNOWLEDGE---")) {
                 log.debug("No knowledge extracted from: {}", record.getTitle());
+                // Parse score even if no knowledge
+                parseAndSaveScore(response, record);
                 return;
             }
 
+            parseAndSaveScore(response, record);
             parseAndSaveKnowledge(response, record);
 
         } catch (Exception e) {
             log.error("AI analysis failed for record {}: {}", record.getId(), e.getMessage());
+        }
+    }
+
+    private void parseAndSaveScore(String response, ActivityRecord record) {
+        Pattern pattern = Pattern.compile("Value:\\s*(\\d+)");
+        Matcher matcher = pattern.matcher(response);
+        if (matcher.find()) {
+            try {
+                int score = Integer.parseInt(matcher.group(1));
+                record.setInterestScore(Math.min(100, score * 10)); // Scale 1-10 to 10-100
+            } catch (NumberFormatException e) {
+                log.warn("Failed to parse score for record {}", record.getId());
+            }
         }
     }
 
@@ -138,10 +154,11 @@ public class ScheduledAnalysisService {
 
         Matcher matcher = pattern.matcher(response);
 
-        while (matcher.find()) {
+        if (matcher.find()) {
             String title = matcher.group(1).trim();
             String category = matcher.group(2).trim();
-            String[] tags = matcher.group(3).trim().split("\\s*,\\s*");
+            String tagsStr = matcher.group(3).trim();
+            String[] tags = tagsStr.split("\\s*,\\s*");
             String content = matcher.group(4).trim();
 
             // Save knowledge entry
@@ -153,6 +170,9 @@ public class ScheduledAnalysisService {
             entry.setSourceRecordId(source.getId());
             knowledgeRepository.save(entry);
             log.info("Saved knowledge entry: {}", entry.getTitle());
+
+            // Save tags to ActivityRecord for filtering
+            source.setTags(tagsStr);
 
             // Update user interest for category
             updateInterest(category);

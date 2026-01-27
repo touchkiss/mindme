@@ -10,7 +10,10 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.UUID;
 
-public interface ActivityRecordRepository extends JpaRepository<ActivityRecord, UUID> {
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
+public interface ActivityRecordRepository
+        extends JpaRepository<ActivityRecord, UUID>, JpaSpecificationExecutor<ActivityRecord> {
 
     List<ActivityRecord> findByAnalyzedFalse();
 
@@ -18,4 +21,7 @@ public interface ActivityRecordRepository extends JpaRepository<ActivityRecord, 
     List<ActivityRecord> search(@Param("query") String query);
 
     List<ActivityRecord> findByVisitTimeBetween(java.time.ZonedDateTime start, java.time.ZonedDateTime end);
+
+    // For AI conversation deduplication
+    java.util.Optional<ActivityRecord> findByExternalId(String externalId);
 }

@@ -85,7 +85,7 @@
           v-model="settings.serverUrl"
           type="text"
           class="setting-input"
-          placeholder="http://localhost:8080/api/ingest/activity"
+          placeholder="http://localhost:8091/api/ingest/activity"
         />
       </div>
 
@@ -185,7 +185,7 @@ const importingBookmarks = ref(false)
 const importProgress = ref('')
 
 const settings = ref({
-  serverUrl: 'http://localhost:8080/api/ingest/activity',
+  serverUrl: 'http://localhost:8091/api/ingest/activity',
   blacklist: ['youtube.com', 'netflix.com'],
   minDurationSeconds: 10,
   minInterestScore: 30,
@@ -245,19 +245,25 @@ async function syncNow() {
   }
 }
 
-function addBlacklistItem() {
+async function addBlacklistItem() {
   const item = newBlacklistItem.value.trim()
   if (item && !settings.value.blacklist.includes(item)) {
     settings.value.blacklist.push(item)
     newBlacklistItem.value = ''
+    await syncSettings(false)
   }
 }
 
-function removeBlacklistItem(item) {
+async function removeBlacklistItem(item) {
   settings.value.blacklist = settings.value.blacklist.filter(i => i !== item)
+  await syncSettings(false)
 }
 
 async function saveSettings() {
+    await syncSettings(true);
+}
+
+async function syncSettings(closePanel = true) {
   try {
     // Fix: Deep copy to remove Vue Proxies before saving
     const settingsPlain = JSON.parse(JSON.stringify(settings.value))
@@ -266,23 +272,38 @@ async function saveSettings() {
     // Push to backend for persistence
     const apiBase = settings.value.serverUrl.includes('/ingest')
         ? settings.value.serverUrl.substring(0, settings.value.serverUrl.indexOf('/ingest'))
-        : "http://localhost:8080/api";
+        : "http://localhost:8091/api";
 
-    await fetch(`${apiBase}/config/extension_settings`, {
+    const response = await fetch(`${apiBase}/config/extension_settings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value: JSON.stringify(settings.value) })
     });
 
+    if (!response.ok) {
+        throw new Error(`Sync failed: ${response.status} ${response.statusText}`);
+    }
+
     toast('Settings saved & synced!')
-    showSettings.value = false
+    if (closePanel) {
+        showSettings.value = false
+    }
   } catch (err) {
     console.error('Failed to save settings:', err)
     // Don't block UI if sync fails, but warn
-    toast('Local saved, Sync failed')
-    showSettings.value = false
+    toast(err.message || 'Local saved, Sync failed')
+    // We only close panel if it was an explicit "Save" button click, 
+    // but maybe better to keep it open on error? 
+    // Existing behavior: close on error (catch block had showSettings.value = false previously).
+    // Let's keep it open on error so user can retry? 
+    // Or stick to previous behavior for consistency?
+    // User complaint was about visual feedback/request.
+    if (closePanel) {
+        showSettings.value = false
+    }
   }
 }
+
 
 async function importBookmarks() {
   if (!chrome.bookmarks) {
@@ -322,7 +343,7 @@ async function importBookmarks() {
     // 3. Batch upload
     const apiBase = settings.value.serverUrl.includes('/ingest')
         ? settings.value.serverUrl.substring(0, settings.value.serverUrl.indexOf('/ingest'))
-        : "http://localhost:8080/api";
+        : "http://localhost:8091/api";
     const INGEST_URL = `${apiBase}/ingest/activity`
 
     const BATCH_SIZE = 50

@@ -8,6 +8,7 @@ export default defineConfig({
     build: {
         outDir: 'dist',
         emptyOutDir: true,
+        chunkSizeWarningLimit: 2000,
         rollupOptions: {
             input: {
                 popup: resolve(__dirname, 'src/popup/index.html'),
@@ -19,6 +20,20 @@ export default defineConfig({
                 entryFileNames: '[name].js',
                 chunkFileNames: 'assets/[name]-[hash].js',
                 assetFileNames: 'assets/[name]-[hash][extname]',
+                manualChunks(id) {
+                    if (id.includes('node_modules')) {
+                        if (id.includes('3d-force-graph') || id.includes('three')) {
+                            return 'vendor-3d-graph';
+                        }
+                        if (id.includes('element-plus')) {
+                            return 'vendor-element-plus';
+                        }
+                        if (id.includes('vue')) {
+                            return 'vendor-vue';
+                        }
+                        // return 'vendor'; // Optional: bundle other vendors together
+                    }
+                }
             },
         },
     },

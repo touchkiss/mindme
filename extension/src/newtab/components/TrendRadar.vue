@@ -1,48 +1,53 @@
 <template>
-  <div class="section trend-radar">
-    <div class="section-header">
-      <div class="section-title">📡 Trend Radar</div>
-      <div class="radar-scan"></div>
-    </div>
-    
-    <div class="radar-header-controls">
-        <label class="ai-toggle">
-            <input type="checkbox" v-model="aiEnabled" @change="loadTrends">
-            <span class="ai-label">AI Filter</span>
-        </label>
-    </div>
-    
-    <div v-if="loading" class="radar-loading">
-        <div class="scan-line"></div>
-        扫描全网热点...
-    </div>
-    
-    <div v-else-if="trends.length" class="trend-list">
-      <a 
-        v-for="(item, i) in trends" 
-        :key="item.url" 
-        :href="item.url"
-        target="_blank"
-        class="trend-item"
-        :style="{ animationDelay: `${i * 100}ms` }"
-      >
-        <span class="trend-badge" :class="item.source.toLowerCase()">{{ item.source }}</span>
-        <span class="trend-title" :title="item.title">{{ item.title }}</span>
-        <span class="trend-score">{{ item.score }}</span>
-      </a>
-    </div>
-    
-    <div v-else class="empty-state">
-      <div class="empty-icon">📵</div>
-      暂无信号
-    </div>
-  </div>
+  <WidgetContainer title="Trend Radar" :icon="Odometer" :loading="loading" class="trend-radar-widget">
+      <template #actions>
+          <button class="action-icon" @click="refresh" title="Refresh" :disabled="loading">
+              <el-icon :class="{ 'is-loading': loading }"><Refresh /></el-icon>
+          </button>
+          <label class="toggle-switch">
+              <input type="checkbox" v-model="aiEnabled" @change="loadTrends">
+              <span class="slider"></span>
+              <span class="label-text">AI FILTER</span>
+          </label>
+      </template>
+
+      <div v-if="trends.length" class="trend-list">
+        <a 
+          v-for="(item, i) in trends" 
+          :key="item.url" 
+          :href="item.url"
+          target="_blank"
+          class="trend-item"
+          :style="{ animationDelay: `${i * 50}ms` }"
+        >
+          <span class="trend-rank font-mono">{{ i + 1 }}</span>
+          <span class="trend-info">
+              <div class="trend-title text-primary">{{ item.title }}</div>
+              <div class="trend-meta">
+                  <span class="badge" :class="item.source?.toLowerCase()">{{ item.source || 'WEB' }}</span>
+                  <span class="score font-mono">{{ item.score }}</span>
+              </div>
+          </span>
+          <div class="trend-graph">
+              <div class="bar" :style="{ width: Math.min(item.score / 100, 100) + '%' }"></div>
+          </div>
+        </a>
+      </div>
+      
+      <div v-else class="empty-placeholder">
+        <el-icon class="empty-icon"><Warning /></el-icon>
+        <span>NO SIGNAL DETECTED</span>
+      </div>
+
+  </WidgetContainer>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { Refresh, Odometer, Warning } from '@element-plus/icons-vue'
+import WidgetContainer from './WidgetContainer.vue'
 
-const API_BASE = 'http://localhost:8080/api'
+const API_BASE = 'http://localhost:8091/api'
 const trends = ref([])
 const loading = ref(true)
 const aiEnabled = ref(false)
@@ -60,109 +65,117 @@ async function loadTrends() {
   }
 }
 
+async function refresh() {
+    try {
+        loading.value = true
+        await fetch(`${API_BASE}/trends/refresh`, { method: 'POST' })
+        await loadTrends()
+    } catch (e) { console.error(e) } 
+    finally { loading.value = false }
+}
+
 onMounted(() => {
   loadTrends()
 })
 </script>
 
 <style scoped>
-.trend-radar {
-    position: relative;
-    overflow: hidden;
-    border-color: var(--cyber-pink);
+.trend-radar-widget {
+    height: 100%;
 }
 
-.radar-scan {
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--cyber-pink);
-    border-radius: 50%;
-    position: absolute;
-    right: 20px;
-    top: 20px;
-    opacity: 0.5;
+.action-icon {
+    background: none;
+    border: none;
+    color: var(--cyber-primary);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
 }
-.radar-scan::after {
+.action-icon:hover { color: #fff; }
+
+.toggle-switch {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+.toggle-switch input { display: none; }
+.slider {
+    width: 24px;
+    height: 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 6px;
+    position: relative;
+    transition: 0.3s;
+}
+.slider::after {
     content: '';
     position: absolute;
-    top: 50%; left: 50%;
-    width: 2px; height: 50%;
-    background: var(--cyber-pink);
-    transform-origin: top center;
-    animation: radarSpin 2s linear infinite;
+    top: 1px; left: 1px;
+    width: 10px; height: 10px;
+    background: #aaa;
+    border-radius: 50%;
+    transition: 0.3s;
 }
-
-@keyframes radarSpin {
-    from { transform: translate(-50%, 0) rotate(0deg); }
-    to { transform: translate(-50%, 0) rotate(360deg); }
-}
+.toggle-switch input:checked + .slider { background: rgba(6, 182, 212, 0.3); }
+.toggle-switch input:checked + .slider::after { left: 13px; background: var(--cyber-primary); }
+.label-text { font-size: 9px; color: var(--text-secondary); font-weight: bold; }
 
 .trend-list {
+    padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .trend-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px;
-    background: rgba(255, 0, 128, 0.05);
-    border: 1px solid rgba(255, 0, 128, 0.1);
-    color: var(--text-primary);
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    gap: 10px;
     text-decoration: none;
-    transition: all 0.2s;
-    animation: slideIn 0.5s ease backwards;
+    padding: 6px;
+    border-radius: 2px;
+    transition: background 0.2s;
+    animation: slideIn 0.3s backwards;
+}
+.trend-item:hover { background: rgba(255,255,255,0.03); }
+
+.trend-rank { color: var(--text-muted); font-size: 12px; text-align: center; }
+
+.trend-info { display: flex; flex-direction: column; gap: 2px; width: 100%; overflow: hidden; }
+.trend-title { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trend-meta { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text-muted); }
+
+.badge { padding: 1px 4px; border-radius: 2px; background: #333; color: #fff; text-transform: uppercase; font-weight: bold; font-size: 9px; }
+.badge.hackernews { background: #ff6600; }
+.badge.ithome { background: #d22222; }
+.badge.zhihu { background: #0084ff; }
+.badge.github { background: #24292e; }
+
+.trend-graph {
+    grid-column: 2;
+    height: 2px;
+    background: rgba(255,255,255,0.05);
+    margin-top: 4px;
+    position: relative;
+}
+.trend-graph .bar {
+    height: 100%;
+    background: var(--cyber-secondary);
+    box-shadow: 0 0 5px var(--cyber-secondary);
 }
 
 @keyframes slideIn {
-    from { opacity: 0; transform: translateX(20px); }
+    from { opacity: 0; transform: translateX(10px); }
     to { opacity: 1; transform: translateX(0); }
 }
 
-.trend-badge {
-    font-size: 10px;
-    padding: 2px 4px;
-    border-radius: 2px;
-    background: #444;
-    color: #fff;
-    min-width: 45px;
-    text-align: center;
+.empty-placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; color: var(--text-muted); font-size: 12px; gap: 10px; opacity: 0.6;
 }
-.trend-badge.hackernews { background: #ff6600; }
-.trend-badge.ithome { background: #d22222; }
-.trend-badge.zhihu { background: #0084ff; }
-.trend-badge.github { background: #333; }
-
-.trend-item:hover {
-    background: rgba(255, 0, 128, 0.15);
-    border-color: var(--cyber-pink);
-    transform: translateX(-5px);
-}
-
-.trend-score {
-    font-family: 'Orbitron', monospace;
-    font-size: 12px;
-    color: var(--cyber-pink);
-    min-width: 25px;
-    text-align: right;
-}
-
-.trend-title {
-    flex: 1;
-    font-size: 13px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.radar-loading {
-    padding: 20px;
-    text-align: center;
-    color: var(--cyber-pink);
-    font-family: 'Orbitron', monospace;
-    font-size: 12px;
-    animation: pulse 1s infinite alternate;
-}
+.empty-icon { font-size: 24px; }
 </style>

@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/admin/sites")
+@RequestMapping("/api/sites")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class SiteAnalyticsController {

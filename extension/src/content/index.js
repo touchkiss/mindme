@@ -1,5 +1,36 @@
 // content.js - MindMe Content Script with Engagement Tracking
 
+// ============== AI Chat Capture ==============
+import { initAIChatCapture } from './aiChatCapture.js';
+initAIChatCapture();
+
+// ============== Extension Context Check ==============
+let extensionContextValid = true;
+
+// Check if extension context is still valid
+function checkExtensionContext() {
+    try {
+        // This will throw if context is invalidated
+        chrome.runtime.getURL('');
+        return true;
+    } catch (e) {
+        extensionContextValid = false;
+        console.log('[MindMe] Extension context invalidated, please refresh the page.');
+        return false;
+    }
+}
+
+// Safe sendMessage wrapper
+function safeSendMessage(message) {
+    if (!extensionContextValid) return Promise.resolve();
+    return chrome.runtime.sendMessage(message).catch((e) => {
+        if (e.message?.includes('Extension context invalidated')) {
+            extensionContextValid = false;
+            console.log('[MindMe] Extension reloaded, please refresh the page.');
+        }
+    });
+}
+
 // ============== Engagement Tracking ==============
 let maxScrollDepth = 0;
 let interactionCount = 0;
@@ -46,11 +77,11 @@ function updateScrollDepth() {
     const now = Date.now();
     if (now - lastScrollUpdate > 2000) { // Every 2 seconds max
         lastScrollUpdate = now;
-        chrome.runtime.sendMessage({
+        safeSendMessage({
             type: "ENGAGEMENT_UPDATE",
             scrollDepth: maxScrollDepth,
             activeSeconds: activeReadingSeconds
-        }).catch(() => { }); // Ignore errors if background not ready
+        });
     }
 }
 
@@ -58,11 +89,11 @@ function updateScrollDepth() {
 function trackInteraction(type) {
     userActivity();
     interactionCount++;
-    chrome.runtime.sendMessage({
+    safeSendMessage({
         type: "ENGAGEMENT_UPDATE",
         interaction: type,
         activeSeconds: activeReadingSeconds
-    }).catch(() => { });
+    });
 }
 
 // Event listeners
@@ -83,10 +114,10 @@ document.addEventListener("selectionchange", () => {
         if (selectionTimeout) clearTimeout(selectionTimeout);
         selectionTimeout = setTimeout(() => {
             console.log("Sending selection:", selection);
-            chrome.runtime.sendMessage({
+            safeSendMessage({
                 type: 'SELECTION_UPDATE',
                 text: selection
-            }).catch(() => { });
+            });
         }, 1000); // Wait 1s after selection stabilizes
     }
 });
@@ -102,11 +133,11 @@ document.addEventListener("mouseup", (e) => {
 
 // Sync active seconds periodically even if no scroll/interaction
 setInterval(() => {
-    if (activeReadingSeconds > 0) {
-        chrome.runtime.sendMessage({
+    if (activeReadingSeconds > 0 && extensionContextValid) {
+        safeSendMessage({
             type: "ENGAGEMENT_UPDATE",
             activeSeconds: activeReadingSeconds
-        }).catch(() => { });
+        });
     }
 }, 5000);
 
@@ -115,6 +146,8 @@ setTimeout(updateScrollDepth, 1000);
 
 // ============== Message Handling ==============
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (!checkExtensionContext()) return;
+
     if (request.type === "SHOW_QUICK_NOTE") {
         showQuickNoteOverlay();
     }
@@ -257,7 +290,7 @@ function showQuickNoteOverlay() {
             title: document.title
         };
 
-        chrome.runtime.sendMessage({ type: "SAVE_NOTE", data: note }, () => {
+        safeSendMessage({ type: "SAVE_NOTE", data: note }).then(() => {
             close();
             showToast("Note saved!");
         });

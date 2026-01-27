@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/admin/activities")
+@RequestMapping("/api/activities")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class ActivityController {
@@ -24,12 +24,19 @@ public class ActivityController {
     @GetMapping
     public Page<ActivityRecord> list(
             @RequestParam(required = false) String query,
-            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
-        if (query != null && !query.isBlank()) {
-            java.util.List<ActivityRecord> results = repository.search(query);
-            return new org.springframework.data.domain.PageImpl<>(results, pageable, results.size());
-        }
-        return repository.findAll(pageable);
+            @RequestParam(required = false) String hostname,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime endDate,
+            @RequestParam(required = false) Boolean analyzed,
+            @RequestParam(required = false) Integer maxScore,
+            @RequestParam(required = false) Integer maxDuration,
+            @RequestParam(required = false) String tag,
+            @PageableDefault(size = 20, sort = "visitTime", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
+
+        return repository.findAll(
+                com.touchkiss.mindme.repository.ActivitySpecifications.withFilters(query, hostname, startDate, endDate,
+                        analyzed, maxScore, maxDuration, tag),
+                pageable);
     }
 
     @GetMapping("/{id}")
@@ -47,6 +54,33 @@ public class ActivityController {
         repository.deleteById(id);
         log.info("Deleted activity record: {}", id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/batch/delete")
+    public ResponseEntity<Void> batchDelete(@RequestBody java.util.List<UUID> ids) {
+        repository.deleteAllById(ids);
+        log.info("Batch deleted {} activities", ids.size());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/batch/analyze")
+    public ResponseEntity<Void> batchAnalyze(@RequestBody java.util.List<UUID> ids) {
+        java.util.List<ActivityRecord> records = repository.findAllById(ids);
+        records.forEach(r -> r.setAnalyzed(false)); // Reset to allow re-analysis
+        repository.saveAll(records);
+        log.info("Marked {} activities for re-analysis", records.size());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/batch/boost")
+    public ResponseEntity<Void> batchBoost(@RequestBody java.util.List<UUID> ids) {
+        java.util.List<ActivityRecord> records = repository.findAllById(ids);
+        records.forEach(r -> {
+            r.setInterestScore(Math.min(100, (r.getInterestScore() == null ? 0 : r.getInterestScore()) + 20));
+        });
+        repository.saveAll(records);
+        log.info("Boosted interest for {} activities", records.size());
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/stats")

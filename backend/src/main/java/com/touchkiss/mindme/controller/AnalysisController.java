@@ -12,7 +12,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/admin/analysis")
+@RequestMapping("/api/analysis")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class AnalysisController {

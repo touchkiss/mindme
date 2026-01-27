@@ -41,11 +41,28 @@ public class VectorSearchService {
             // Append title for better context
             String text = "Title: " + record.getTitle() + "\n" + content;
 
-            TextSegment segment = TextSegment.from(text, metadata);
+            dev.langchain4j.data.document.Document document = dev.langchain4j.data.document.Document.from(text,
+                    metadata);
+            // Split document into segments
+            // Split into segments of 2000 chars with 200 overlap to stay well within 4096
+            // token limit
+            // (assuming 1 token ~= 4 chars, 2000 chars is ~500 tokens, safe margin)
 
-            // Generate embedding and store
-            dev.langchain4j.data.embedding.Embedding embedding = embeddingModel.embed(segment).content();
-            embeddingStore.add(embedding, segment);
+            int maxSegmentSizeInChars = 2000;
+            int maxOverlapSizeInChars = 200;
+
+            // Note: We might want to make these configurable or use TokenTextSplitter if
+            // precise token count is needed
+            // But Recursive character splitter is generally good for semantic chunks.
+            List<TextSegment> segments = dev.langchain4j.data.document.splitter.DocumentSplitters.recursive(
+                    maxSegmentSizeInChars,
+                    maxOverlapSizeInChars).split(document);
+
+            // Generate embedding and store for each segment
+            for (TextSegment segment : segments) {
+                dev.langchain4j.data.embedding.Embedding embedding = embeddingModel.embed(segment).content();
+                embeddingStore.add(embedding, segment);
+            }
 
             log.info("Indexed activity: {}", record.getUrl());
         } catch (Exception e) {

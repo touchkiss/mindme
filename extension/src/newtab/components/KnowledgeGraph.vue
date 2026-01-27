@@ -36,7 +36,7 @@ const tooltipStyle = ref({ top: '0px', left: '0px' });
 let graphInstance = null;
 
 const SETTINGS = {
-  serverUrl: 'http://localhost:8080/api'
+  serverUrl: 'http://localhost:8091/api'
 };
 
 onMounted(async () => {
@@ -46,7 +46,7 @@ onMounted(async () => {
     if (stored.serverUrl) {
         SETTINGS.serverUrl = stored.serverUrl.includes('/ingest') 
             ? stored.serverUrl.substring(0, stored.serverUrl.indexOf('/ingest')) 
-            : "http://localhost:8080/api";
+            : "http://localhost:8091/api";
     }
   } catch (e) {}
 

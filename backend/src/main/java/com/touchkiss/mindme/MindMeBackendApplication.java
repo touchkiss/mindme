@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
+@org.springframework.cache.annotation.EnableCaching
 public class MindMeBackendApplication {
 
     public static void main(String[] args) {

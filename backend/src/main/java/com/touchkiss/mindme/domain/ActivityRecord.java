@@ -60,6 +60,14 @@ public class ActivityRecord {
     @Column(name = "search_query")
     private String searchQuery;
 
+    @Column(name = "tags")
+    private String tags;
+
+    // External ID for deduplication (e.g., AI conversation IDs from
+    // ChatGPT/DeepSeek/Gemini)
+    @Column(name = "external_id", unique = true)
+    private String externalId;
+
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;
 

@@ -15,7 +15,7 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/admin/knowledge")
+@RequestMapping("/api/knowledge")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class KnowledgeController {

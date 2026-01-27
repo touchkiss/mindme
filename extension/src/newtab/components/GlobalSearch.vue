@@ -6,28 +6,38 @@
           <button 
             :class="{ active: mode === 'search' }" 
             @click="mode = 'search'"
-          >🔍 SEARCH</button>
+          >
+           <el-icon><Search /></el-icon> SEARCH
+          </button>
           <button 
             :class="{ active: mode === 'chat' }" 
             @click="mode = 'chat'"
-          >🤖 AI CHAT</button>
+          >
+           <el-icon><Cpu /></el-icon> AI CHAT
+          </button>
         </div>
         <button class="close-btn" @click="close">×</button>
       </div>
 
       <!-- SEARCH MODE -->
       <div v-if="mode === 'search'" class="search-mode">
-        <input 
-          ref="searchInput"
-          v-model="query" 
-          @keyup.enter="performSearch"
-          placeholder="Search your knowledge base..." 
-          class="cyber-input"
-          autofocus
-        />
+        <div class="input-wrapper">
+             <input 
+              ref="searchInput"
+              v-model="query" 
+              @keyup.enter="performSearch"
+              placeholder="Search your knowledge base..." 
+              class="cyber-input"
+              autofocus
+            />
+            <div class="input-line"></div>
+        </div>
         
         <div class="results-area">
-          <div v-if="loading" class="loading">SEARCHING...</div>
+          <div v-if="loading" class="loading">
+              <div class="scan-line"></div>
+              SEARCHING NEURAL NET...
+          </div>
           <div v-else-if="results.length" class="results-list">
             <div 
               v-for="item in results" 
@@ -37,7 +47,9 @@
             >
               <div class="result-title">{{ item.title }}</div>
               <div class="result-summary">{{ item.contentSummary }}</div>
-              <div class="result-meta">{{ new Date(item.visitTime).toLocaleDateString() }}</div>
+              <div class="result-meta">
+                  <el-icon><Clock /></el-icon> {{ new Date(item.visitTime).toLocaleDateString() }}
+              </div>
             </div>
           </div>
           <div v-else-if="searched" class="empty">NO DATA FOUND</div>
@@ -72,6 +84,7 @@
 
 <script setup>
 import { ref, watch, nextTick } from 'vue'
+import { Search, Cpu, Clock } from '@element-plus/icons-vue'
 
 const props = defineProps(['modelValue'])
 const emit = defineEmits(['update:modelValue'])
@@ -82,7 +95,7 @@ const query = ref('')
 const chatQuery = ref('')
 const results = ref([])
 const messages = ref([
-  { role: 'assistant', content: 'Hello. I act as your second brain. Ask me anything about what you have browsed.' }
+  { role: 'assistant', content: 'Connection established. Ready for query.' }
 ])
 const loading = ref(false)
 const chatLoading = ref(false)
@@ -90,7 +103,7 @@ const searched = ref(false)
 const searchInput = ref(null)
 const chatHistory = ref(null)
 
-const API_BASE = 'http://localhost:8080/api'
+const API_BASE = 'http://localhost:8091/api'
 
 // Open/Close logic
 watch(() => props.modelValue, (val) => {
@@ -182,7 +195,7 @@ window.addEventListener('keydown', (e) => {
 .search-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(5, 10, 18, 0.9);
+  background: rgba(2, 6, 23, 0.9);
   backdrop-filter: blur(5px);
   z-index: 10000;
   display: flex;
@@ -195,8 +208,8 @@ window.addEventListener('keydown', (e) => {
 .search-modal {
   width: 700px;
   background: var(--cyber-panel);
-  border: 1px solid var(--cyber-cyan);
-  box-shadow: 0 0 30px rgba(0,255,255,0.15);
+  border: 1px solid var(--cyber-primary);
+  box-shadow: 0 0 30px rgba(6, 182, 212, 0.15);
   display: flex;
   flex-direction: column;
   max-height: 80vh;
@@ -205,45 +218,69 @@ window.addEventListener('keydown', (e) => {
 .search-header {
   display: flex;
   justify-content: space-between;
-  padding: 10px;
-  background: rgba(0,255,255,0.05);
-  border-bottom: 1px solid var(--cyber-border);
+  padding: 0;
+  background: rgba(15, 23, 42, 0.5);
+  border-bottom: 1px solid var(--cyber-panel-border);
 }
+
+.mode-toggles { display: flex; }
 
 .mode-toggles button {
   background: none;
   border: none;
   color: var(--text-secondary);
-  padding: 8px 16px;
+  padding: 12px 24px;
   cursor: pointer;
-  font-family: 'Orbitron', monospace;
+  font-family: var(--font-heading);
+  font-size: 13px;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid transparent;
 }
 
 .mode-toggles button.active {
-  color: var(--cyber-cyan);
-  text-shadow: 0 0 10px var(--cyber-cyan);
-  border-bottom: 2px solid var(--cyber-cyan);
+  color: var(--cyber-primary);
+  background: rgba(6, 182, 212, 0.1);
+  border-bottom-color: var(--cyber-primary);
 }
 
 .close-btn {
   background: none;
   border: none;
   color: var(--text-secondary);
-  font-size: 20px;
+  font-size: 24px;
   cursor: pointer;
+  padding: 0 20px;
+  transition: color 0.2s;
 }
+.close-btn:hover { color: var(--cyber-accent); }
 
+.input-wrapper {
+    position: relative;
+    padding: 2px;
+}
 .cyber-input {
   width: 100%;
   padding: 20px;
   background: none;
   border: none;
-  border-bottom: 1px solid var(--cyber-border);
   color: var(--text-primary);
-  font-size: 18px;
-  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
+  font-family: var(--font-mono);
   outline: none;
+}
+.input-line {
+    height: 1px;
+    background: var(--cyber-panel-border);
+    width: 100%;
+    margin-top: -1px;
+    transition: 0.3s;
+}
+.cyber-input:focus + .input-line {
+    background: var(--cyber-primary);
+    box-shadow: 0 0 10px var(--cyber-primary);
 }
 
 .cyber-input::placeholder {
@@ -256,23 +293,26 @@ window.addEventListener('keydown', (e) => {
   padding: 0;
   overflow-y: auto;
   max-height: 500px;
+  min-height: 100px;
 }
 
 .result-item {
   padding: 15px 20px;
-  border-bottom: 1px solid rgba(0,255,255,0.05);
+  border-bottom: 1px solid var(--cyber-panel-border);
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .result-item:hover {
-  background: rgba(0,255,255,0.05);
+  background: rgba(6, 182, 212, 0.05);
+  padding-left: 25px; /* Slight shift */
 }
 
 .result-title {
-  color: var(--cyber-cyan);
-  font-weight: bold;
-  font-size: 16px;
+  color: var(--cyber-primary);
+  font-weight: 600;
+  font-size: 15px;
+  font-family: var(--font-body);
 }
 
 .result-summary {
@@ -283,10 +323,12 @@ window.addEventListener('keydown', (e) => {
 }
 
 .result-meta {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: 11px;
-  margin-top: 5px;
-  opacity: 0.7;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Chat */
@@ -306,50 +348,78 @@ window.addEventListener('keydown', (e) => {
 }
 
 .message {
-  max-width: 80%;
-  padding: 10px 15px;
-  border-radius: 4px;
+  max-width: 85%;
+  padding: 12px 16px;
   font-size: 14px;
   line-height: 1.5;
+  position: relative;
+  /* clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); */
 }
 
 .message.user {
   align-self: flex-end;
-  background: rgba(0,255,255,0.1);
-  border: 1px solid var(--cyber-cyan);
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid var(--cyber-primary);
   color: var(--text-primary);
+  border-radius: 8px 8px 0 8px;
 }
 
 .message.assistant {
   align-self: flex-start;
-  background: rgba(191,95,255,0.1);
-  border: 1px solid var(--cyber-purple);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid var(--cyber-secondary);
   color: var(--text-primary);
+  border-radius: 8px 8px 8px 0;
 }
 
 .chat-input-area {
   display: flex;
-  border-top: 1px solid var(--cyber-border);
+  border-top: 1px solid var(--cyber-panel-border);
 }
 
 .send-btn {
-  background: rgba(0,255,255,0.1);
+  background: rgba(6, 182, 212, 0.1);
   border: none;
-  border-left: 1px solid var(--cyber-border);
-  color: var(--cyber-cyan);
-  padding: 0 20px;
+  border-left: 1px solid var(--cyber-panel-border);
+  color: var(--cyber-primary);
+  padding: 0 24px;
   cursor: pointer;
-  font-family: 'Orbitron', monospace;
+  font-family: var(--font-heading);
+  letter-spacing: 0.1em;
+  font-weight: bold;
+  transition: all 0.2s;
 }
 
 .send-btn:hover {
-  background: rgba(0,255,255,0.2);
+  background: rgba(6, 182, 212, 0.2);
+  color: #fff;
 }
 
 .loading, .empty {
-  padding: 20px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
   text-align: center;
   color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+
+.scan-line {
+    width: 60%;
+    height: 2px;
+    background: var(--cyber-primary);
+    box-shadow: 0 0 15px var(--cyber-primary);
+    animation: scan 1.5s infinite ease-in-out alternate;
+}
+
+@keyframes scan {
+    from { width: 10%; opacity: 0.3; }
+    to { width: 80%; opacity: 1; }
 }
 
 @keyframes fadeIn {

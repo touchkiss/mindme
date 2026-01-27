@@ -2,7 +2,7 @@ package com.touchkiss.mindme.service;
 
 import com.touchkiss.mindme.domain.ActivityRecord;
 import com.touchkiss.mindme.repository.ActivityRecordRepository;
-import com.touchkiss.mindme.repository.UserInterestsRepository;
+import com.touchkiss.mindme.repository.UserInterestRepository;
 import com.touchkiss.mindme.domain.UserInterest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 public class AiAnalysisService {
 
     private final ActivityRecordRepository repository;
-    private final UserInterestsRepository interestsRepository;
+    private final UserInterestRepository interestsRepository;
     private final ChatLanguageModel chatModel;
     private final VectorSearchService vectorSearchService;
 

@@ -10,7 +10,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -24,7 +24,7 @@ langchain4j:
     chat-model:
       api-key: ${OPENAI_API_KEY:}
       base-url: ${OPENAI_BASE_URL:https://integrate.api.nvidia.com/v1}
-      model-name: ${OPENAI_MODEL:minimaxai/minimax-m2}
+      model-name: ${OPENAI_MODEL:moonshotai/kimi-k2-thinking}
       timeout: PT60S
     embedding-model:
       api-key: ${OPENAI_API_KEY:}
@@ -43,4 +43,4 @@ langchain4j:
     index-type: HNSW
 
 server:
-  port: 8080
+  port: 8091

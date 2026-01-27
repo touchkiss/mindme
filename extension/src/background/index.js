@@ -1,7 +1,10 @@
 // background.js - MindMe Service Worker with Interest Scoring
 
+// ============== Browser Agent ==============
+import { browserAgent } from './browserAgent.js';
+
 // ============== Configuration ==============
-const DEFAULT_SERVER_URL = "http://localhost:8080/api/ingest/activity";
+const DEFAULT_SERVER_URL = "http://localhost:8091/api/ingest/activity";
 const SYNC_INTERVAL_MINUTES = 1;
 
 // Default settings
@@ -11,7 +14,8 @@ const DEFAULT_SETTINGS = {
     minDurationSeconds: 10,      // Minimum active time to report
     minInterestScore: 30,        // Minimum score to report (0-100)
     activeOnlyMode: false,       // Only report typed/generated/bookmark
-    trackSearchQueries: true     // Track search engine queries
+    trackSearchQueries: true,    // Track search engine queries
+    agentEnabled: true           // Browser agent enabled by default
 };
 
 // ============== State ==============
@@ -125,11 +129,23 @@ chrome.runtime.onInstalled.addListener(async () => {
 
     console.log("MindMe installed/updated.");
     chrome.alarms.create("syncData", { periodInMinutes: SYNC_INTERVAL_MINUTES });
+    chrome.alarms.create("agentProcess", { periodInMinutes: 5 }); // Agent check every 5 mins
     createContextMenus();
+
+    // Start browser agent if enabled
+    if (stored.agentEnabled !== false) {
+        browserAgent.start();
+    }
 });
 
-chrome.runtime.onStartup.addListener(() => {
+chrome.runtime.onStartup.addListener(async () => {
     createContextMenus();
+
+    // Start browser agent if enabled
+    const { agentEnabled } = await chrome.storage.sync.get(['agentEnabled']);
+    if (agentEnabled !== false) {
+        browserAgent.start();
+    }
 });
 
 // ============== Web Navigation Tracking ==============
@@ -319,7 +335,19 @@ chrome.bookmarks.onCreated.addListener(async (id, bookmark) => {
 
 // ============== Evaluate and Report ==============
 async function evaluateAndReport(tabId, data) {
-    const settings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
+    // Get settings with proper defaults handling
+    const stored = await chrome.storage.sync.get([
+        'serverUrl', 'blacklist', 'minDurationSeconds',
+        'minInterestScore', 'activeOnlyMode', 'trackSearchQueries'
+    ]);
+    const settings = {
+        serverUrl: stored.serverUrl ?? DEFAULT_SETTINGS.serverUrl,
+        blacklist: stored.blacklist ?? DEFAULT_SETTINGS.blacklist,
+        minDurationSeconds: stored.minDurationSeconds ?? DEFAULT_SETTINGS.minDurationSeconds,
+        minInterestScore: stored.minInterestScore ?? DEFAULT_SETTINGS.minInterestScore,
+        activeOnlyMode: stored.activeOnlyMode ?? DEFAULT_SETTINGS.activeOnlyMode,
+        trackSearchQueries: stored.trackSearchQueries ?? DEFAULT_SETTINGS.trackSearchQueries
+    };
 
     // Skip blacklisted domains
     try {
@@ -327,9 +355,11 @@ async function evaluateAndReport(tabId, data) {
         const hostname = urlObj.hostname;
 
         const blacklist = Array.isArray(settings.blacklist) ? settings.blacklist : [];
-        if (blacklist.some(pattern => matchWildcard(hostname, pattern))) {
-            console.log(`[Skip] Blacklisted: ${hostname} (matched ${pattern})`);
-            return;
+        for (const pattern of blacklist) {
+            if (matchWildcard(hostname, pattern)) {
+                console.log(`[Skip] Blacklisted: ${hostname} (matched ${pattern})`);
+                return;
+            }
         }
     } catch (e) {
         return;
@@ -390,6 +420,53 @@ async function evaluateAndReport(tabId, data) {
     }
 }
 
+// ============== AI Conversation Handling ==============
+async function handleAIConversation(data, tab) {
+    if (!data || !data.fullConversation) {
+        console.log('[AI] Empty conversation data, skipping');
+        return;
+    }
+
+    // Generate external ID using platform + native conversation ID
+    const externalId = data.conversationId
+        ? `${data.platform}_${data.conversationId}`
+        : null;
+
+    console.log(`[AI] Captured ${data.messageCount} messages from ${data.platform}${externalId ? ` (ExternalID: ${externalId})` : ''}`);
+
+    // Create activity record for AI conversation
+    const record = {
+        // Use external ID for deduplication (same conversation updates instead of creates new)
+        externalId: externalId,
+        url: data.url || tab?.url || `https://${data.platform}.com`,
+        title: `AI对话 (${data.platform}) - ${data.summary.substring(0, 50)}`,
+        visitTime: data.timestamp || new Date().toISOString(),
+        durationSeconds: 0,
+        // Store full conversation in contentSummary
+        contentSummary: data.fullConversation,
+        pageContent: '', // Could store last response here
+        activeSeconds: 0,
+        scrollDepth: 100,
+        interactionCount: data.messageCount || 1,
+        interestScore: 85, // AI conversations are high-value learning activities
+        transitionType: 'ai_conversation',
+        tags: `AI,${data.platform}`,
+        // Store conversation metadata
+        searchQuery: data.lastUserQuery || '',
+        referrer: null,
+        relatedRecordUrl: null,
+        relationshipType: null
+    };
+
+    activityQueue.push(record);
+    todayCount++;
+
+    // Sync immediately for AI conversations (they're valuable)
+    if (activityQueue.length >= 1) {
+        syncData();
+    }
+}
+
 // ============== Message Handling ==============
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     switch (request.type) {
@@ -446,6 +523,59 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 todayCount: todayCount
             });
             break;
+
+        case "AI_CONVERSATION":
+            // Handle AI chat conversation capture
+            handleAIConversation(request.data, sender.tab);
+            sendResponse({ success: true });
+            break;
+
+        case "WATCH_PAGE":
+            // Add page to watch list via agent
+            {
+                const url = request.url || sender.tab?.url;
+                const title = request.title || sender.tab?.title;
+                if (url) {
+                    const taskId = browserAgent.addTask(url, 'watch_check', 5, {
+                        title,
+                        isInitialWatch: true
+                    });
+                    console.log(`[Agent] Added watch task: ${url}`);
+                    sendResponse({ success: true, taskId });
+                } else {
+                    sendResponse({ success: false, error: 'No URL provided' });
+                }
+            }
+            break;
+
+        case "AGENT_CRAWL":
+            // Add URL to agent crawl queue
+            {
+                const taskId = browserAgent.addTask(
+                    request.url,
+                    request.type || 'manual',
+                    request.priority || 0,
+                    request.metadata || {}
+                );
+                sendResponse({ success: true, taskId });
+            }
+            break;
+
+        case "AGENT_STATUS":
+            // Get agent status
+            sendResponse(browserAgent.getStatus());
+            break;
+
+        case "AGENT_CONTROL":
+            // Start/stop agent
+            if (request.action === 'start') {
+                browserAgent.start();
+                sendResponse({ success: true, status: 'started' });
+            } else if (request.action === 'stop') {
+                browserAgent.stop();
+                sendResponse({ success: true, status: 'stopped' });
+            }
+            break;
     }
     return true;
 });
@@ -473,6 +603,11 @@ function createContextMenus() {
             title: "Add quick note for this page",
             contexts: ["page"]
         });
+        chrome.contextMenus.create({
+            id: "watch-page",
+            title: "👁️ Watch this page for updates",
+            contexts: ["page"]
+        });
     });
 }
 
@@ -490,6 +625,19 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         case "quick-note":
             chrome.tabs.sendMessage(tab.id, { type: "SHOW_QUICK_NOTE" });
             break;
+        case "watch-page":
+            // Add page to watch list
+            browserAgent.addTask(tab.url, 'watch_check', 5, { 
+                title: tab.title, 
+                isInitialWatch: true 
+            });
+            // Show notification
+            chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: showNotification,
+                args: ["👁️ Page added to watch list!"]
+            });
+            break;
     }
 });
 
@@ -499,9 +647,9 @@ async function saveToQueue(info, tab) {
 
     try {
         const { serverUrl } = await chrome.storage.sync.get("serverUrl");
-        // Assume API base is derived from serverUrl (e.g. remove /ingest/activity)
-        // Or just hardcode for now as we have DEFAULT_SERVER_URL
-        const apiBase = "http://localhost:8080/api";
+        const apiBase = serverUrl && serverUrl.includes('/ingest')
+            ? serverUrl.substring(0, serverUrl.indexOf('/ingest'))
+            : "http://localhost:8091/api";
 
         await fetch(`${apiBase}/reading-queue`, {
             method: 'POST',
@@ -669,7 +817,7 @@ async function syncConfig() {
         const { serverUrl } = await chrome.storage.sync.get("serverUrl");
         const apiBase = serverUrl.includes('/ingest')
             ? serverUrl.substring(0, serverUrl.indexOf('/ingest'))
-            : "http://localhost:8080/api";
+            : "http://localhost:8091/api";
 
         const res = await fetch(`${apiBase}/config/extension_settings`);
         if (res.ok) {
@@ -680,9 +828,13 @@ async function syncConfig() {
                 await chrome.storage.sync.set(remoteSettings);
                 console.log("Config synced from server");
             }
+        } else if (res.status === 404) {
+            console.log("No remote config found (404), keeping local settings.");
+        } else {
+            console.log(`Config sync failed with status: ${res.status}`);
         }
     } catch (e) {
-        console.log("Config sync failed (server might be down)");
+        console.log("Config sync failed (server might be down)", e);
     }
 }
 

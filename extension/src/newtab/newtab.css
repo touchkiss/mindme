@@ -1,27 +1,58 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Rajdhani:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
 
 :root {
-    --cyber-bg: #050a12;
-    --cyber-panel: rgba(10, 25, 47, 0.85);
-    --cyber-border: rgba(0, 255, 255, 0.25);
-    --cyber-cyan: #00ffff;
-    --cyber-green: #00ff88;
-    --cyber-purple: #bf5fff;
-    --cyber-pink: #ff0080;
-    --cyber-yellow: #ffcc00;
-    --text-primary: #e0f0ff;
-    --text-secondary: #6a8a9a;
+    /* Cyberpunk Pro Max Palette */
+    --cyber-bg: #020617;
+    /* Deep Navy/Black */
+    --cyber-panel: rgba(15, 23, 42, 0.70);
+    /* Glassy Navy */
+    --cyber-panel-border: rgba(56, 189, 248, 0.2);
+    /* Sky Blue border */
+
+    --cyber-primary: #06b6d4;
+    /* Cyan */
+    --cyber-secondary: #8b5cf6;
+    /* Violet */
+    --cyber-accent: #f43f5e;
+    /* Rose/Pink */
+    --cyber-success: #10b981;
+    /* Emerald */
+    --cyber-warning: #f59e0b;
+    /* Amber */
+
+    --text-primary: #f8fafc;
+    /* Slate 50 */
+    --text-secondary: #94a3b8;
+    /* Slate 400 */
+    --text-muted: #475569;
+    /* Slate 600 */
+
+    --noise-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+
+    --font-heading: 'Orbitron', monospace;
+    --font-body: 'Rajdhani', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
 }
 
 body {
     background: var(--cyber-bg);
     margin: 0;
-    overflow-x: hidden;
-    width: 100vw !important;
-    min-height: 100vh;
-    font-family: 'Rajdhani', sans-serif;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    font-family: var(--font-body);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: var(--noise-texture);
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
 }
 
 * {
@@ -29,41 +60,181 @@ body {
 }
 
 ::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
+    height: 4px;
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(0, 255, 255, 0.05);
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--cyber-cyan);
-    border-radius: 3px;
+    background: var(--cyber-panel-border);
+    border-radius: 2px;
 }
 
-a {
-    text-decoration: none;
-    color: inherit;
+::-webkit-scrollbar-thumb:hover {
+    background: var(--cyber-primary);
 }
 
-button {
-    font-family: inherit;
+/* Typography Utilities */
+.font-mono {
+    font-family: var(--font-mono);
 }
 
-/* Global Utility Classes */
-.btn {
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-size: 14px;
-    cursor: pointer;
-    border: none;
-    transition: all 0.2s;
-    background: rgba(0, 255, 255, 0.1);
-    color: var(--cyber-cyan);
-    border: 1px solid var(--cyber-border);
+.font-heading {
+    font-family: var(--font-heading);
 }
 
-.btn:hover {
-    background: rgba(0, 255, 255, 0.2);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+.text-xs {
+    font-size: 0.75rem;
+    line-height: 1rem;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.text-base {
+    font-size: 1rem;
+    line-height: 1.5rem;
+}
+
+.text-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+}
+
+/* Color Utilities */
+.text-primary {
+    color: var(--cyber-primary);
+}
+
+.text-secondary {
+    color: var(--cyber-secondary);
+}
+
+.text-accent {
+    color: var(--cyber-accent);
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+
+/* Glitch Effect */
+.glitch-text {
+    position: relative;
+}
+
+.glitch-text::before,
+.glitch-text::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.glitch-text::before {
+    left: 2px;
+    text-shadow: -1px 0 var(--cyber-accent);
+    clip: rect(24px, 550px, 90px, 0);
+    animation: glitch-anim-1 2.5s infinite linear alternate-reverse;
+}
+
+.glitch-text::after {
+    left: -2px;
+    text-shadow: -1px 0 var(--cyber-primary);
+    clip: rect(85px, 550px, 140px, 0);
+    animation: glitch-anim-2 3s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-anim-1 {
+    0% {
+        clip: rect(20px, 9999px, 15px, 0);
+    }
+
+    20% {
+        clip: rect(50px, 9999px, 80px, 0);
+    }
+
+    40% {
+        clip: rect(10px, 9999px, 90px, 0);
+    }
+
+    60% {
+        clip: rect(30px, 9999px, 20px, 0);
+    }
+
+    80% {
+        clip: rect(60px, 9999px, 50px, 0);
+    }
+
+    100% {
+        clip: rect(90px, 9999px, 10px, 0);
+    }
+}
+
+@keyframes glitch-anim-2 {
+    0% {
+        clip: rect(100px, 9999px, 50px, 0);
+    }
+
+    20% {
+        clip: rect(20px, 9999px, 80px, 0);
+    }
+
+    40% {
+        clip: rect(15px, 9999px, 10px, 0);
+    }
+
+    60% {
+        clip: rect(90px, 9999px, 20px, 0);
+    }
+
+    80% {
+        clip: rect(50px, 9999px, 100px, 0);
+    }
+
+    100% {
+        clip: rect(10px, 9999px, 40px, 0);
+    }
+}
+
+/* Scanline Overlay */
+.scanlines {
+    background: repeating-linear-gradient(0deg,
+            rgba(0, 0, 0, 0) 0px,
+            rgba(0, 0, 0, 0) 1px,
+            rgba(0, 0, 0, 0.1) 1px,
+            rgba(0, 0, 0, 0.1) 2px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 999;
+}
+
+/* Element Plus Overrides */
+:root {
+    --el-color-primary: var(--cyber-primary);
+    --el-text-color-regular: var(--text-primary);
+    --el-text-color-primary: var(--text-primary);
+    --el-text-color-secondary: var(--text-secondary);
+    --el-bg-color: var(--cyber-bg);
+    --el-border-color: var(--cyber-panel-border);
+    --el-fill-color-blank: rgba(15, 23, 42, 0.9);
+}
+
+.el-button {
+    font-family: var(--font-body);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    border-radius: 0;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
 }

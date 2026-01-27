@@ -1,20 +1,25 @@
 {
-	"name": "extension",
-	"private": true,
-	"version": "0.0.0",
-	"type": "module",
-	"scripts": {
-		"dev": "vite",
-		"build": "vite build",
-		"preview": "vite preview"
-	},
-	"dependencies": {
-		"3d-force-graph": "^1.79.0",
-		"vue": "^3.5.24"
-	},
-	"devDependencies": {
-		"@vitejs/plugin-vue": "^6.0.1",
-		"vite": "^7.2.4",
-		"jsrepo": "^3.0.10"
-	}
+    "name": "extension",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "@element-plus/icons-vue": "^2.3.2",
+        "3d-force-graph": "^1.79.0",
+        "axios": "^1.13.2",
+        "element-plus": "^2.13.1",
+        "marked": "^17.0.1",
+        "motion-v": "^1.7.6",
+        "vue": "^3.5.24"
+    },
+    "devDependencies": {
+        "@vitejs/plugin-vue": "^6.0.1",
+        "jsrepo": "^3.0.10",
+        "vite": "^7.2.4"
+    }
 }
